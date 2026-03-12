@@ -5,7 +5,6 @@ A web app to compare rune builds for Dino Mutant T-Rex!
 https://zozone-layer.github.io/dino-rune-builder/
 
 All data and calculations were collected and organized by KittyChaCha. 
-
 Web UI was built out by Zozone.
 
 **Note:** Include any Constellation buffs within the Base Stats for your Dinos
