@@ -216,20 +216,6 @@ function renderResults(panelId) {
       <span class="stat-value">${sim.attacksToKillEnemy}</span>
     </div>
 
-    <div class="results-section-title">Defensive simulation</div>
-    <div class="stat-row">
-      <span class="stat-label">Flat dmg reduction / hit</span>
-      <span class="stat-value ${sim.flatDmgReduce > 0 ? 'pos' : ''}">${fmt(sim.flatDmgReduce)}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Effective enemy atk / hit</span>
-      <span class="stat-value">${fmt(sim.effectiveEnemyAtk)}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Hits to survive</span>
-      <span class="stat-value">${sim.hitsToSurvive}</span>
-    </div>
-
     <div class="results-section-title">Healing</div>
     <div class="stat-row">
       <span class="stat-label">Avg heal / attack</span>
@@ -543,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Fighter stat changes trigger recalculation
-  ['base-hp', 'base-atk', 'base-crit', 'enemy-hp', 'enemy-atk'].forEach(id => {
+  ['base-hp', 'base-atk', 'base-crit'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderAllResults);
   });
 });
