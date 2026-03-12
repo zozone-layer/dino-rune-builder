@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Mutant T-Rex — Rune Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-dino">🦕</span>
+        <div class="logo-text">
+          <span class="logo-title">Rune Builder</span>
+          <span class="logo-sub">Dino Mutant T-Rex</span>
+        </div>
+      </div>
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="builder">Build &amp; Compare</button>
+        <button class="tab-btn" data-tab="reference">Rune Reference</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== BUILD & COMPARE TAB ===== -->
+    <section id="tab-builder" class="tab-section active">
+
+      <!-- Fighter Stats Row -->
+      <div class="fighter-bar">
+        <div class="fighter-card">
+          <div class="fighter-label">Your Fighter</div>
+          <div class="fighter-inputs">
+            <label>Base HP<input type="number" id="base-hp" value="3110" min="1" /></label>
+            <label>Base Attack<input type="number" id="base-atk" value="330" min="1" /></label>
+            <label>Base Crit %<input type="number" id="base-crit" value="0" min="0" max="100" step="1" />
+              <span class="input-unit">%</span></label>
+          </div>
+        </div>
+        <div class="fighter-card">
+          <div class="fighter-label">Enemy</div>
+          <div class="fighter-inputs">
+            <label>Base HP<input type="number" id="enemy-hp" value="15000" min="1" /></label>
+            <label>Base Attack<input type="number" id="enemy-atk" value="800" min="1" /></label>
+          </div>
+        </div>
+        <div class="fighter-card saves-card">
+          <div class="fighter-label">Saved Builds</div>
+          <div class="save-controls">
+            <input type="text" id="build-name" placeholder="Build name…" maxlength="30" />
+            <button id="btn-save-a" class="btn-small btn-a">Save A</button>
+            <button id="btn-save-b" class="btn-small btn-b">Save B</button>
+          </div>
+          <div id="saved-list" class="saved-list"></div>
+        </div>
+      </div>
+
+      <!-- Dual Build Panels -->
+      <div class="builds-wrapper">
+
+        <!-- Build A -->
+        <div class="build-panel" id="panel-a">
+          <div class="panel-header">
+            <span class="panel-badge badge-a">BUILD A</span>
+            <button class="btn-clear" data-panel="a">Clear all</button>
+          </div>
+          <div class="rune-grid" id="grid-a"></div>
+          <div class="results-card" id="results-a"></div>
+        </div>
+
+        <!-- VS Divider -->
+        <div class="vs-divider">
+          <span>VS</span>
+        </div>
+
+        <!-- Build B -->
+        <div class="build-panel" id="panel-b">
+          <div class="panel-header">
+            <span class="panel-badge badge-b">BUILD B</span>
+            <button class="btn-clear" data-panel="b">Clear all</button>
+          </div>
+          <div class="rune-grid" id="grid-b"></div>
+          <div class="results-card" id="results-b"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== RUNE REFERENCE TAB ===== -->
+    <section id="tab-reference" class="tab-section">
+      <div class="reference-filters">
+        <button class="filter-btn active" data-tier="all">All</button>
+        <button class="filter-btn" data-tier="blue">◆ Common</button>
+        <button class="filter-btn" data-tier="green">◆ Uncommon</button>
+        <button class="filter-btn" data-tier="yellow">◆ Rare</button>
+        <button class="filter-btn" data-tier="orange">◆ Epic</button>
+        <button class="filter-btn" data-tier="red">◆ Legendary</button>
+      </div>
+      <div id="reference-grid" class="reference-grid"></div>
+    </section>
+  </main>
+
+  <!-- Rune Detail Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal" class="modal">
+      <button id="modal-close" class="modal-close">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="runes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
