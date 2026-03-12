@@ -28,8 +28,7 @@ function pct(n) {
 }
 
 // ---- Simulation Engine ----
-// Mirrors the spreadsheet logic exactly
-function simulate(build, baseHP, baseAtk, baseCritPct, enemyHP, enemyAtk) {
+function simulate(build, baseHP, baseAtk, baseCritPct) {
   // 1. Collect all active rune level data
   const runeEntries = Object.entries(build).map(([name, level]) => ({
     name, level, data: getLevelData(name, level)
@@ -40,8 +39,8 @@ function simulate(build, baseHP, baseAtk, baseCritPct, enemyHP, enemyAtk) {
   let attackPct = 0;
   let hpFlat = 0;
   let hpPct = 0;
-  let critPctBonus = 0;  // additive bonus to crit rate
-  let critMultBonus = 0; // crit damage multiplier bonus
+  let critPctBonus = 0;
+  let critMultBonus = 0;
 
   for (const { data } of runeEntries) {
     const freq = data.freq || '';
@@ -60,32 +59,26 @@ function simulate(build, baseHP, baseAtk, baseCritPct, enemyHP, enemyAtk) {
   const finalHP = Math.round(baseHP * (1 + hpPct) + hpFlat);
   const finalAtk = Math.round(baseAtk * (1 + attackPct) + attackFlat);
   const finalCritPct = Math.min(1, baseCritPct / 100 + critPctBonus);
-  const finalCritMult = 1 + critMultBonus; // e.g. 1.2 = 20% extra on crit
+  const finalCritMult = 1 + critMultBonus;
 
   // 4. Effective attack per hit (including crit)
-  // Crit attack: base * (1 + crit_mult), normal attack: base
-  // avg = base * (1 - critRate) + base * critMult * critRate
   const avgAtkPerHit = finalAtk * (1 - finalCritPct) + finalAtk * finalCritMult * finalCritPct;
 
   // 5. Proc-based bonuses — expressed as avg per attack
-  let avgAttackBonus = 0;  // extra flat attack added per hit on average
-  let avgHealPerHit = 0;   // HP healed per attack on average
+  let avgAttackBonus = 0;
+  let avgHealPerHit = 0;
 
   for (const { data } of runeEntries) {
     const freq = data.freq || '';
     const chance = data.chance || 1;
 
     if (freq === 'Every hit' || freq === 'Every attack') {
-      // Heal HP %
       if (data.heal_hp_pct) {
         avgHealPerHit += data.heal_hp_pct * finalHP * chance;
       }
-      // Heal from attack %
       if (data.heal_atk_pct) {
         avgHealPerHit += data.heal_atk_pct * avgAtkPerHit * chance;
       }
-      // Damage reduction (flat, per hit) — contribute to effective tankiness but listed separately
-      // One-time attack bonus proc
       if (data.one_time_atk) {
         avgAttackBonus += data.one_time_atk * avgAtkPerHit * chance;
       }
@@ -101,35 +94,6 @@ function simulate(build, baseHP, baseAtk, baseCritPct, enemyHP, enemyAtk) {
   // 6. Effective damage per attack (attack + procs)
   const totalDmgPerAtk = avgAtkPerHit + avgAttackBonus;
 
-  // 7. Damage reduction per hit (static Hard Skinned / Dmg Resist)
-  let flatDmgReduce = 0;
-  for (const { data } of runeEntries) {
-    const freq = data.freq || '';
-    if ((freq === 'Every hit') && data.reduce_dmg) {
-      const chance = data.chance || 1;
-      flatDmgReduce += data.reduce_dmg * chance;
-    }
-  }
-
-  // 8. Effective incoming damage per enemy attack
-  const effectiveEnemyAtk = Math.max(0, enemyAtk - flatDmgReduce);
-
-  // 9. Attacks needed to kill enemy (enemy HP / our total dmg per atk)
-  const attacksToKillEnemy = totalDmgPerAtk > 0
-    ? Math.ceil(enemyHP / totalDmgPerAtk)
-    : Infinity;
-
-  // 10. Hits to be killed (our HP / enemy atk after reduction)
-  const hitsToSurvive = effectiveEnemyAtk > 0
-    ? Math.ceil(finalHP / effectiveEnemyAtk)
-    : Infinity;
-
-  // 11. Total healed during combat (our attacks * avgHealPerHit)
-  const totalHealed = Math.round(attacksToKillEnemy * avgHealPerHit);
-
-  // 12. Active rune count (for "X" limit display)
-  const activeCount = Object.keys(build).length;
-
   return {
     finalHP,
     finalAtk,
@@ -139,12 +103,6 @@ function simulate(build, baseHP, baseAtk, baseCritPct, enemyHP, enemyAtk) {
     avgAttackBonus: Math.round(avgAttackBonus),
     avgHealPerHit: Math.round(avgHealPerHit),
     totalDmgPerAtk: Math.round(totalDmgPerAtk),
-    flatDmgReduce: Math.round(flatDmgReduce),
-    effectiveEnemyAtk: Math.round(effectiveEnemyAtk),
-    attacksToKillEnemy: isFinite(attacksToKillEnemy) ? attacksToKillEnemy : '∞',
-    hitsToSurvive: isFinite(hitsToSurvive) ? hitsToSurvive : '∞',
-    totalHealed,
-    activeCount,
     attackPct,
     hpPct,
   };
@@ -156,8 +114,6 @@ function getBaseStats() {
     hp: parseFloat(document.getElementById('base-hp').value) || 3110,
     atk: parseFloat(document.getElementById('base-atk').value) || 330,
     crit: parseFloat(document.getElementById('base-crit').value) || 0,
-    enemyHp: parseFloat(document.getElementById('enemy-hp').value) || 15000,
-    enemyAtk: parseFloat(document.getElementById('enemy-atk').value) || 800,
   };
 }
 
@@ -165,7 +121,7 @@ function renderResults(panelId) {
   const build = state.builds[panelId];
   const el = document.getElementById('results-' + panelId);
   const s = getBaseStats();
-  const sim = simulate(build, s.hp, s.atk, s.crit, s.enemyHp, s.enemyAtk);
+  const sim = simulate(build, s.hp, s.atk, s.crit);
 
   if (Object.keys(build).length === 0) {
     el.innerHTML = '<div class="results-empty">Select runes above to see stats</div>';
@@ -211,19 +167,11 @@ function renderResults(panelId) {
       <span class="stat-label">Total avg dmg / attack</span>
       <span class="stat-value highlight">${fmt(sim.totalDmgPerAtk)}</span>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">Attacks to kill enemy</span>
-      <span class="stat-value">${sim.attacksToKillEnemy}</span>
-    </div>
 
     <div class="results-section-title">Healing</div>
     <div class="stat-row">
       <span class="stat-label">Avg heal / attack</span>
       <span class="stat-value ${sim.avgHealPerHit > 0 ? 'pos' : ''}">${fmt(sim.avgHealPerHit)}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Total healed (full fight)</span>
-      <span class="stat-value ${sim.totalHealed > 0 ? 'pos' : ''}">${fmt(sim.totalHealed)}</span>
     </div>
   `;
 }
@@ -247,24 +195,20 @@ function buildRuneGrid(panelId) {
     slot.dataset.rune = name;
     slot.dataset.panel = panelId;
 
-    // Level badge
     const badge = document.createElement('div');
     badge.className = 'rune-level-badge';
     badge.textContent = 'Lv' + currentLevel;
 
-    // Icon
     const img = document.createElement('img');
     img.className = 'rune-icon';
     img.src = `icons/${rune.icon}.png`;
     img.alt = name;
     img.onerror = () => { img.src = `icons/heal.png`; };
 
-    // Name
     const nameEl = document.createElement('div');
     nameEl.className = 'rune-slot-name';
     nameEl.textContent = name;
 
-    // Level selector (visible when active)
     const sel = document.createElement('select');
     sel.className = 'rune-level-select';
     for (let lv = 1; lv <= 31; lv++) {
@@ -283,25 +227,21 @@ function buildRuneGrid(panelId) {
       renderResults(panelId);
     });
 
-    // Toggle on click (but not level selector)
     slot.addEventListener('click', (e) => {
       if (e.target === sel || e.target.tagName === 'OPTION') return;
       if (isActive || state.builds[panelId][name]) {
-        // Deactivate
         delete state.builds[panelId][name];
         slot.classList.remove('active');
         sel.style.display = 'none';
         badge.style.opacity = '0';
         slot.querySelector('.rune-slot-name').style.color = '';
       } else {
-        // Activate
         state.builds[panelId][name] = parseInt(sel.value);
         slot.classList.add('active');
       }
       renderResults(panelId);
     });
 
-    // Right-click = open modal detail
     slot.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       openRuneModal(name);
@@ -332,7 +272,6 @@ function buildReferenceGrid(tierFilter) {
     card.className = `ref-card tier-${rune.tier}`;
     card.addEventListener('click', () => openRuneModal(rune.name));
 
-    // Build a short stat summary
     const statLines = [];
     if (lv1.attack) statLines.push(`+${lv1.attack}→${lv31.attack} Attack`);
     if (lv1.attack_pct) statLines.push(`${pct(lv1.attack_pct)}→${pct(lv31.attack_pct)} Attack`);
@@ -365,7 +304,6 @@ function openRuneModal(name) {
   const rune = getRune(name);
   if (!rune) return;
 
-  // Determine non-null stat columns
   const statCols = [
     { key: 'attack',       label: 'Attack' },
     { key: 'attack_pct',   label: 'Atk %',    format: pct },
@@ -475,18 +413,13 @@ function renderSavedList() {
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
-  // Build grids
   buildRuneGrid('a');
   buildRuneGrid('b');
   renderAllResults();
 
-  // Build reference grid
   buildReferenceGrid('all');
-
-  // Load saved builds
   renderSavedList();
 
-  // Tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -496,7 +429,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Reference filters
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -505,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Clear buttons
   document.querySelectorAll('.btn-clear').forEach(btn => {
     btn.addEventListener('click', () => {
       const panel = btn.dataset.panel;
@@ -515,11 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Save buttons
   document.getElementById('btn-save-a').addEventListener('click', () => saveBuild('a'));
   document.getElementById('btn-save-b').addEventListener('click', () => saveBuild('b'));
 
-  // Modal close
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
@@ -528,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeModal();
   });
 
-  // Fighter stat changes trigger recalculation
   ['base-hp', 'base-atk', 'base-crit'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderAllResults);
   });
