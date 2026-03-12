@@ -91,7 +91,7 @@ header {
   color: var(--text-primary);
   letter-spacing: 0.05em;
 }
-.logo-sub { font-size: 14px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
+.logo-sub { font-size: 13px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
 
 .tab-nav { display: flex; gap: 4px; }
 .tab-btn {
