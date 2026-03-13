@@ -34,7 +34,7 @@ function simulate(build, baseHP, baseAtk, baseCritPct) {
     name, level, data: getLevelData(name, level)
   })).filter(e => e.data);
 
-  // 2. Static modifiers (Always frequency)
+  // 2. Static modifiers
   let attackFlat = 0;
   let attackPct = 0;
   let hpFlat = 0;
@@ -45,19 +45,25 @@ function simulate(build, baseHP, baseAtk, baseCritPct) {
   for (const { data } of runeEntries) {
     const freq = data.freq || '';
     const isAlways = freq === 'Always' || freq === 'While all 5 alive';
+
+    // FIX 1: attack_pct and hp_pct are always permanent stat buffs regardless of freq
+    // (e.g. Meteor has freq "Every attack" but its % bonuses are always-on)
+    if (data.attack_pct) attackPct += data.attack_pct;
+    if (data.hp_pct) hpPct += data.hp_pct;
+
+    // Flat bonuses and crit only apply for always-on runes
     if (isAlways) {
       if (data.attack) attackFlat += data.attack;
-      if (data.attack_pct) attackPct += data.attack_pct;
       if (data.hp) hpFlat += data.hp;
-      if (data.hp_pct) hpPct += data.hp_pct;
       if (data.crit_pct) critPctBonus += data.crit_pct;
       if (data.crit) critMultBonus += data.crit;
     }
   }
 
   // 3. After-rune stats
-  const finalHP = Math.round(baseHP * (1 + hpPct) + hpFlat);
-  const finalAtk = Math.round(baseAtk * (1 + attackPct) + attackFlat);
+  // FIX 2: apply flat bonuses first, then multiply by pct — matches spreadsheet order of operations
+  const finalHP = Math.round((baseHP + hpFlat) * (1 + hpPct));
+  const finalAtk = Math.round((baseAtk + attackFlat) * (1 + attackPct));
   const finalCritPct = Math.min(1, baseCritPct / 100 + critPctBonus);
   const finalCritMult = 1 + critMultBonus;
 
