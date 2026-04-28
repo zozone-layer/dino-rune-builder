@@ -28,7 +28,7 @@ function pct(n) {
 }
 
 // ---- Simulation Engine ----
-function simulate(build, baseHP, baseAtk, baseCritPct) {
+function simulate(build, baseHP, baseAtk, eggPct, nestPct, constAtk, constHP) {
   // 1. Collect all active rune level data
   const runeEntries = Object.entries(build).map(([name, level]) => ({
     name, level, data: getLevelData(name, level)
@@ -39,38 +39,37 @@ function simulate(build, baseHP, baseAtk, baseCritPct) {
   let attackPct = 0;
   let hpFlat = 0;
   let hpPct = 0;
-  let critPctBonus = 0;
-  let critMultBonus = 0;
 
   for (const { data } of runeEntries) {
     const freq = data.freq || '';
     const isAlways = freq === 'Always' || freq === 'While all 5 alive';
 
-    // FIX 1: attack_pct and hp_pct are always permanent stat buffs regardless of freq
-    // (e.g. Meteor has freq "Every attack" but its % bonuses are always-on)
+    // attack_pct and hp_pct are always permanent stat buffs regardless of freq
     if (data.attack_pct) attackPct += data.attack_pct;
     if (data.hp_pct) hpPct += data.hp_pct;
 
-    // Flat bonuses and crit only apply for always-on runes
+    // Flat bonuses only apply for always-on runes
     if (isAlways) {
       if (data.attack) attackFlat += data.attack;
       if (data.hp) hpFlat += data.hp;
-      if (data.crit_pct) critPctBonus += data.crit_pct;
-      if (data.crit) critMultBonus += data.crit;
     }
   }
 
+  // Add cosmetic and constellation bonuses
+  // Constellations are flat bonuses applied before percentages (same as rune flat bonuses)
+  // Egg = ATK%, Nest = HP%, both applied as permanent percentage multipliers
+  attackFlat += constAtk;
+  hpFlat += constHP;
+  attackPct += eggPct;
+  hpPct += nestPct;
+
   // 3. After-rune stats
-  // FIX 2: apply flat bonuses first, then multiply by pct — matches spreadsheet order of operations
+  // Flat bonuses applied first, then percentage multipliers
   const finalHP = Math.round((baseHP + hpFlat) * (1 + hpPct));
   const finalAtk = Math.round((baseAtk + attackFlat) * (1 + attackPct));
-  const finalCritPct = Math.min(1, baseCritPct / 100 + critPctBonus);
-  const finalCritMult = 1 + critMultBonus;
 
-  // 4. Effective attack per hit (including crit)
-  const avgAtkPerHit = finalAtk * (1 - finalCritPct) + finalAtk * finalCritMult * finalCritPct;
-
-  // 5. Proc-based bonuses — expressed as avg per attack
+  // 4. Proc-based bonuses — expressed as avg per attack
+  const avgAtkPerHit = finalAtk;
   let avgAttackBonus = 0;
   let avgHealPerHit = 0;
 
@@ -103,8 +102,6 @@ function simulate(build, baseHP, baseAtk, baseCritPct) {
   return {
     finalHP,
     finalAtk,
-    finalCritPct,
-    finalCritMult,
     avgAtkPerHit: Math.round(avgAtkPerHit),
     avgAttackBonus: Math.round(avgAttackBonus),
     avgHealPerHit: Math.round(avgHealPerHit),
@@ -119,7 +116,10 @@ function getBaseStats() {
   return {
     hp: parseFloat(document.getElementById('base-hp').value) || 3110,
     atk: parseFloat(document.getElementById('base-atk').value) || 330,
-    crit: parseFloat(document.getElementById('base-crit').value) || 0,
+    eggPct: parseFloat(document.getElementById('egg-cosmetic').value) || 0,
+    nestPct: parseFloat(document.getElementById('nest-cosmetic').value) || 0,
+    constAtk: parseFloat(document.getElementById('const-atk').value) || 0,
+    constHP: parseFloat(document.getElementById('const-hp').value) || 0,
   };
 }
 
@@ -127,7 +127,7 @@ function renderResults(panelId) {
   const build = state.builds[panelId];
   const el = document.getElementById('results-' + panelId);
   const s = getBaseStats();
-  const sim = simulate(build, s.hp, s.atk, s.crit);
+  const sim = simulate(build, s.hp, s.atk, s.eggPct, s.nestPct, s.constAtk, s.constHP);
 
   if (Object.keys(build).length === 0) {
     el.innerHTML = '<div class="results-empty">Select runes above to see stats</div>';
@@ -138,7 +138,7 @@ function renderResults(panelId) {
   const atkChange = sim.finalAtk - s.atk;
 
   el.innerHTML = `
-    <div class="results-section-title">Fighter stats after runes</div>
+    <div class="results-section-title">Fighter stats after runes &amp; bonuses</div>
     <div class="stat-row">
       <span class="stat-label">HP</span>
       <span class="stat-value highlight">${fmt(sim.finalHP)}
@@ -151,15 +151,6 @@ function renderResults(panelId) {
         <span class="stat-change ${atkChange >= 0 ? 'up' : 'down'}">${atkChange >= 0 ? '+' : ''}${fmt(atkChange)}</span>
       </span>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">Crit rate</span>
-      <span class="stat-value">${pct(sim.finalCritPct)}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Crit damage</span>
-      <span class="stat-value">${pct(sim.finalCritMult - 1)} bonus</span>
-    </div>
-
     <div class="results-section-title">Offensive simulation</div>
     <div class="stat-row">
       <span class="stat-label">Avg damage / attack</span>
@@ -463,7 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeModal();
   });
 
-  ['base-hp', 'base-atk', 'base-crit'].forEach(id => {
+  ['base-hp', 'base-atk', 'const-atk', 'const-hp'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderAllResults);
+  });
+  ['egg-cosmetic', 'nest-cosmetic'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderAllResults);
   });
 });
