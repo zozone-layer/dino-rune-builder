@@ -49,27 +49,37 @@
 
           </div>
         </div>
-        <div class="fighter-card">
-          <div class="fighter-label">Bonuses</div>
-          <div class="fighter-inputs">
-            <label>Egg Cosmetic
-              <select id="egg-cosmetic">
-                <option value="0">None (0%)</option>
-                <option value="0.002">+0.2%</option>
-                <option value="0.005">+0.5%</option>
-                <option value="0.01">+1.0%</option>
-              </select>
-            </label>
-            <label>Nest Cosmetic
-              <select id="nest-cosmetic">
-                <option value="0">None (0%)</option>
-                <option value="0.002">+0.2%</option>
-                <option value="0.005">+0.5%</option>
-                <option value="0.01">+1.0%</option>
-              </select>
-            </label>
-            <label>Constellation ATK<input type="number" id="const-atk" value="0" min="0" placeholder="0" /></label>
-            <label>Constellation HP<input type="number" id="const-hp" value="0" min="0" placeholder="0" /></label>
+        <div class="fighter-card bonuses-card">
+          <div class="bonuses-inner">
+            <div class="bonus-group">
+              <div class="fighter-label">Skins</div>
+              <div class="fighter-inputs">
+                <label>Egg
+                  <select id="egg-cosmetic">
+                    <option value="0">None</option>
+                    <option value="0.002">+0.2%</option>
+                    <option value="0.005">+0.5%</option>
+                    <option value="0.01">+1.0%</option>
+                  </select>
+                </label>
+                <label>Nest
+                  <select id="nest-cosmetic">
+                    <option value="0">None</option>
+                    <option value="0.002">+0.2%</option>
+                    <option value="0.005">+0.5%</option>
+                    <option value="0.01">+1.0%</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="bonus-divider"></div>
+            <div class="bonus-group">
+              <div class="fighter-label">Constellations</div>
+              <div class="fighter-inputs">
+                <label>ATK<input type="number" id="const-atk" value="0" min="0" placeholder="0" /></label>
+                <label>HP<input type="number" id="const-hp" value="0" min="0" placeholder="0" /></label>
+              </div>
+            </div>
           </div>
         </div>
         <div class="fighter-card saves-card">
